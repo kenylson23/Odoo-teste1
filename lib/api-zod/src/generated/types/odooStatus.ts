@@ -6,6 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface HealthStatus {
-  status: string;
+export interface OdooStatus {
+  connected: boolean;
+  /** @nullable */
+  version?: string | null;
+  /** @nullable */
+  message?: string | null;
 }

@@ -3,13 +3,17 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: API specification for employee registration form with Odoo integration
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: employees
+    description: Employee registration operations
+  - name: config
+    description: Odoo configuration and department/job lookups
 paths:
   /healthz:
     get:
@@ -24,6 +28,127 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /employees:
+    get:
+      operationId: listEmployees
+      tags: [employees]
+      summary: List all registered employees
+      description: Returns all employees submitted through the form (from Odoo)
+      responses:
+        "200":
+          description: List of employees
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Employee"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      operationId: createEmployee
+      tags: [employees]
+      summary: Register a new employee
+      description: Submits a new employee record to Odoo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmployeeInput"
+      responses:
+        "201":
+          description: Employee created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Employee"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /employees/{id}:
+    get:
+      operationId: getEmployee
+      tags: [employees]
+      summary: Get a single employee
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Employee record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Employee"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /config/departments:
+    get:
+      operationId: listDepartments
+      tags: [config]
+      summary: List available departments from Odoo
+      responses:
+        "200":
+          description: List of departments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Department"
+
+  /config/jobs:
+    get:
+      operationId: listJobs
+      tags: [config]
+      summary: List available job positions from Odoo
+      responses:
+        "200":
+          description: List of job positions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/JobPosition"
+
+  /config/odoo-status:
+    get:
+      operationId: getOdooStatus
+      tags: [config]
+      summary: Check Odoo connection status
+      responses:
+        "200":
+          description: Odoo connection status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OdooStatus"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +159,128 @@ components:
       required:
         - status
 
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    Employee:
+      type: object
+      required:
+        - id
+        - name
+        - email
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: ["string", "null"]
+        mobile:
+          type: ["string", "null"]
+        cpf:
+          type: ["string", "null"]
+        birthDate:
+          type: ["string", "null"]
+        gender:
+          type: ["string", "null"]
+        department:
+          type: ["string", "null"]
+        jobTitle:
+          type: ["string", "null"]
+        jobPosition:
+          type: ["string", "null"]
+        hireDate:
+          type: ["string", "null"]
+        address:
+          type: ["string", "null"]
+        city:
+          type: ["string", "null"]
+        state:
+          type: ["string", "null"]
+        zip:
+          type: ["string", "null"]
+        odooId:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+
+    EmployeeInput:
+      type: object
+      required:
+        - name
+        - email
+      properties:
+        name:
+          type: string
+          minLength: 2
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        mobile:
+          type: string
+        cpf:
+          type: string
+        birthDate:
+          type: string
+        gender:
+          type: string
+          enum: [male, female, other]
+        department:
+          type: string
+        jobTitle:
+          type: string
+        jobPosition:
+          type: string
+        hireDate:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        zip:
+          type: string
+
+    Department:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+
+    JobPosition:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+
+    OdooStatus:
+      type: object
+      required:
+        - connected
+      properties:
+        connected:
+          type: boolean
+        version:
+          type: ["string", "null"]
+        message:
+          type: ["string", "null"]
