@@ -9,10 +9,6 @@ export function isOdooConfigured(): boolean {
   return !!(ODOO_URL && ODOO_DB && ODOO_USERNAME && ODOO_API_KEY);
 }
 
-// Odoo uses JSON-RPC 2.0. For API Key auth, the password field IS the API key.
-// Authenticate via /web/dataset/call_kw using uid=1 is not correct —
-// we must first get the uid via common/authenticate, then use the API key as password.
-
 type JsonRpcResponse<T = unknown> = {
   jsonrpc: string;
   id: number;
@@ -26,35 +22,26 @@ async function rpc<T = unknown>(
 ): Promise<T> {
   if (!ODOO_URL) throw new Error("ODOO_URL not configured");
   const url = `${ODOO_URL.replace(/\/$/, "")}${path}`;
-  const body = {
-    jsonrpc: "2.0",
-    method: "call",
-    id: Math.floor(Math.random() * 1_000_000),
-    params: payload,
-  };
-
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      method: "call",
+      id: Math.floor(Math.random() * 1_000_000),
+      params: payload,
+    }),
   });
-
-  if (!res.ok) {
-    throw new Error(`Odoo HTTP ${res.status}: ${res.statusText}`);
-  }
-
+  if (!res.ok) throw new Error(`Odoo HTTP ${res.status}: ${res.statusText}`);
   const data = (await res.json()) as JsonRpcResponse<T>;
-
   if (data.error) {
     const msg =
       data.error.data?.message ?? data.error.data?.debug ?? data.error.message;
     throw new Error(`Odoo RPC error: ${msg}`);
   }
-
   return data.result as T;
 }
 
-// Cache the uid per process lifetime (it doesn't change for a given user)
 let _uid: number | null = null;
 
 async function getUid(): Promise<number> {
@@ -62,27 +49,13 @@ async function getUid(): Promise<number> {
   if (!ODOO_DB || !ODOO_USERNAME || !ODOO_API_KEY) {
     throw new Error("Odoo credentials not configured");
   }
-
-  // Odoo API Key auth: authenticate with the API key as the password
-  const uid = await rpc<number>("/web/dataset/call_kw", {
-    model: "res.users",
-    method: "search",
-    args: [[["login", "=", ODOO_USERNAME]]],
-    kwargs: {},
-  }).catch(() => null);
-
-  // Use the standard common authenticate endpoint — API key works as password here
-  const authUid = await rpc<number | false>("/jsonrpc", {
+  const uid = await rpc<number | false>("/jsonrpc", {
     service: "common",
     method: "authenticate",
     args: [ODOO_DB, ODOO_USERNAME, ODOO_API_KEY, {}],
   });
-
-  if (!authUid) {
-    throw new Error("Odoo authentication failed — check credentials");
-  }
-
-  _uid = authUid;
+  if (!uid) throw new Error("Odoo authentication failed — check credentials");
+  _uid = uid;
   return _uid;
 }
 
@@ -100,6 +73,92 @@ async function callKw<T = unknown>(
   });
 }
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type OdooEmployeeRaw = {
+  id: number;
+  name: string;
+  work_email: string | false;
+  work_phone: string | false;
+  mobile_phone: string | false;
+  job_title: string | false;
+  birthday: string | false;
+  identification_id: string | false;
+  department_id: [number, string] | false;
+  job_id: [number, string] | false;
+  create_date: string | false;
+};
+
+export type OdooEmployee = {
+  id: number;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  mobile: string | null;
+  cpf: string | null;
+  birthDate: string | null;
+  gender: null;
+  department: string | null;
+  jobTitle: string | null;
+  jobPosition: string | null;
+  hireDate: null;
+  address: null;
+  city: null;
+  state: null;
+  zip: null;
+  odooId: number;
+  createdAt: string;
+};
+
+function f(val: string | false | null | undefined): string | null {
+  return val || null;
+}
+
+function parseDate(val: string | false): string | null {
+  if (!val) return null;
+  // Odoo returns "YYYY-MM-DD" or "YYYY-MM-DD HH:mm:ss"
+  return val.includes(" ") ? new Date(val).toISOString() : val;
+}
+
+function deserializeEmployee(raw: OdooEmployeeRaw): OdooEmployee {
+  return {
+    id: raw.id,
+    name: raw.name,
+    email: f(raw.work_email),
+    phone: f(raw.work_phone),
+    mobile: f(raw.mobile_phone),
+    cpf: f(raw.identification_id),
+    birthDate: parseDate(raw.birthday),
+    gender: null,
+    department: Array.isArray(raw.department_id) ? raw.department_id[1] : null,
+    jobTitle: f(raw.job_title),
+    jobPosition: Array.isArray(raw.job_id) ? raw.job_id[1] : null,
+    hireDate: null,
+    address: null,
+    city: null,
+    state: null,
+    zip: null,
+    odooId: raw.id,
+    createdAt: parseDate(raw.create_date) ?? new Date().toISOString(),
+  };
+}
+
+const EMPLOYEE_FIELDS = [
+  "id",
+  "name",
+  "work_email",
+  "work_phone",
+  "mobile_phone",
+  "job_title",
+  "birthday",
+  "identification_id",
+  "department_id",
+  "job_id",
+  "create_date",
+];
+
+// ─── Public API ───────────────────────────────────────────────────────────────
+
 export async function checkOdooConnection(): Promise<{
   connected: boolean;
   version: string | null;
@@ -113,16 +172,10 @@ export async function checkOdooConnection(): Promise<{
         "Odoo não configurado. Defina ODOO_URL, ODOO_DB, ODOO_USERNAME e ODOO_API_KEY.",
     };
   }
-
   try {
-    // Reset cached uid so we re-authenticate with fresh secrets
     _uid = null;
     await getUid();
-    return {
-      connected: true,
-      version: null,
-      message: "Conectado ao Odoo com sucesso",
-    };
+    return { connected: true, version: null, message: "Conectado ao Odoo com sucesso" };
   } catch (err) {
     logger.error({ err }, "Odoo connection check failed");
     return {
@@ -133,6 +186,27 @@ export async function checkOdooConnection(): Promise<{
   }
 }
 
+export async function listOdooEmployees(): Promise<OdooEmployee[]> {
+  const rows = await callKw<OdooEmployeeRaw[]>(
+    "hr.employee",
+    "search_read",
+    [[["active", "=", true]]],
+    { fields: EMPLOYEE_FIELDS, order: "create_date asc", limit: 500 }
+  );
+  return rows.map(deserializeEmployee);
+}
+
+export async function getOdooEmployee(id: number): Promise<OdooEmployee | null> {
+  const rows = await callKw<OdooEmployeeRaw[]>(
+    "hr.employee",
+    "search_read",
+    [[["id", "=", id]]],
+    { fields: EMPLOYEE_FIELDS, limit: 1 }
+  );
+  if (rows.length === 0) return null;
+  return deserializeEmployee(rows[0]);
+}
+
 export async function createOdooEmployee(data: {
   name: string;
   email?: string;
@@ -140,38 +214,27 @@ export async function createOdooEmployee(data: {
   mobile?: string;
   cpf?: string;
   birthDate?: string;
-  gender?: string;
-  department?: string;
   jobTitle?: string;
-  jobPosition?: string;
-  hireDate?: string;
-}): Promise<number | null> {
-  if (!isOdooConfigured()) {
-    logger.warn("Odoo not configured, skipping Odoo employee creation");
-    return null;
-  }
+}): Promise<OdooEmployee> {
+  const vals: Record<string, unknown> = { name: data.name };
+  if (data.email) vals.work_email = data.email;
+  if (data.phone) vals.work_phone = data.phone;
+  if (data.mobile) vals.mobile_phone = data.mobile;
+  if (data.jobTitle) vals.job_title = data.jobTitle;
+  if (data.birthDate) vals.birthday = data.birthDate;
+  if (data.cpf) vals.identification_id = data.cpf;
 
-  try {
-    const vals: Record<string, unknown> = { name: data.name };
-    if (data.email) vals.work_email = data.email;
-    if (data.phone) vals.work_phone = data.phone;
-    if (data.mobile) vals.mobile_phone = data.mobile;
-    if (data.jobTitle) vals.job_title = data.jobTitle;
-    if (data.birthDate) vals.birthday = data.birthDate;
+  const newId = await callKw<number>("hr.employee", "create", [vals]);
+  logger.info({ odooId: newId }, "Employee created in Odoo");
 
-    const id = await callKw<number>("hr.employee", "create", [vals]);
-    logger.info({ odooId: id }, "Employee created in Odoo");
-    return id;
-  } catch (err) {
-    logger.error({ err }, "Failed to create employee in Odoo");
-    return null;
-  }
+  const employee = await getOdooEmployee(newId);
+  if (!employee) throw new Error("Employee created but could not be retrieved");
+  return employee;
 }
 
 export async function getOdeoDepartments(): Promise<
   Array<{ id: number; name: string }>
 > {
-  if (!isOdooConfigured()) return [];
   try {
     return await callKw<Array<{ id: number; name: string }>>(
       "hr.department",
@@ -188,7 +251,6 @@ export async function getOdeoDepartments(): Promise<
 export async function getOdooJobs(): Promise<
   Array<{ id: number; name: string }>
 > {
-  if (!isOdooConfigured()) return [];
   try {
     return await callKw<Array<{ id: number; name: string }>>(
       "hr.job",

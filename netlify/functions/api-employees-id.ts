@@ -1,5 +1,5 @@
 import type { Handler } from "@netlify/functions";
-import { getPool, serializeEmployee } from "./_lib/db";
+import { getOdooEmployee } from "./_lib/odoo";
 
 const headers = {
   "Content-Type": "application/json",
@@ -23,19 +23,10 @@ export const handler: Handler = async (event) => {
     return { statusCode: 400, headers, body: JSON.stringify({ error: "ID inválido" }) };
   }
 
-  const pool = getPool();
-  const { rows } = await pool.query(
-    "SELECT * FROM employees WHERE id = $1",
-    [id]
-  );
-
-  if (rows.length === 0) {
+  const employee = await getOdooEmployee(id);
+  if (!employee) {
     return { statusCode: 404, headers, body: JSON.stringify({ error: "Funcionário não encontrado" }) };
   }
 
-  return {
-    statusCode: 200,
-    headers,
-    body: JSON.stringify(serializeEmployee(rows[0])),
-  };
+  return { statusCode: 200, headers, body: JSON.stringify(employee) };
 };
