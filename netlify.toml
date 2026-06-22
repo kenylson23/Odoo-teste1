@@ -1,0 +1,44 @@
+[build]
+  command = "pnpm install && pnpm run typecheck:libs && pnpm --filter @workspace/employee-form run build:netlify"
+  publish = "artifacts/employee-form/dist"
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+# API redirects to Netlify Functions
+[[redirects]]
+  from = "/api/config/odoo-status"
+  to = "/.netlify/functions/api-config-odoo-status"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/config/departments"
+  to = "/.netlify/functions/api-config-departments"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/config/jobs"
+  to = "/.netlify/functions/api-config-jobs"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/employees/:id"
+  to = "/.netlify/functions/api-employees-id?id=:id"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/employees"
+  to = "/.netlify/functions/api-employees"
+  status = 200
+  force = true
+
+# SPA fallback — must be last
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
