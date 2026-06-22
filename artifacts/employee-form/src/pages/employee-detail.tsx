@@ -86,7 +86,7 @@ export function EmployeeDetail() {
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-sm font-medium text-muted-foreground">CPF</span>
+                  <span className="text-sm font-medium text-muted-foreground">BI</span>
                   <p className="font-medium">{employee.cpf || "Não informado"}</p>
                 </div>
               </div>
