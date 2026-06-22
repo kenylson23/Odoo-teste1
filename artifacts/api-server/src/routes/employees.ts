@@ -11,13 +11,19 @@ import { createOdooEmployee } from "../lib/odoo";
 
 const router: IRouter = Router();
 
-router.get("/employees", async (req, res): Promise<void> => {
+type EmployeeRow = typeof employeesTable.$inferSelect;
+
+function serialize(employee: EmployeeRow) {
+  return { ...employee, createdAt: employee.createdAt.toISOString() };
+}
+
+router.get("/employees", async (_req, res): Promise<void> => {
   const rows = await db
     .select()
     .from(employeesTable)
     .orderBy(employeesTable.createdAt);
 
-  res.json(ListEmployeesResponse.parse(rows));
+  res.json(ListEmployeesResponse.parse(rows.map(serialize)));
 });
 
 router.post("/employees", async (req, res): Promise<void> => {
@@ -38,7 +44,6 @@ router.post("/employees", async (req, res): Promise<void> => {
       mobile: data.mobile,
       cpf: data.cpf,
       birthDate: data.birthDate,
-      gender: data.gender,
       department: data.department,
       jobTitle: data.jobTitle,
       jobPosition: data.jobPosition,
@@ -71,7 +76,7 @@ router.post("/employees", async (req, res): Promise<void> => {
     .returning();
 
   req.log.info({ employeeId: employee.id, odooId }, "Employee registered");
-  res.status(201).json(GetEmployeeResponse.parse(employee));
+  res.status(201).json(GetEmployeeResponse.parse(serialize(employee)));
 });
 
 router.get("/employees/:id", async (req, res): Promise<void> => {
@@ -92,7 +97,7 @@ router.get("/employees/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  res.json(GetEmployeeResponse.parse(employee));
+  res.json(GetEmployeeResponse.parse(serialize(employee)));
 });
 
 export default router;

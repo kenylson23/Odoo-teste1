@@ -158,7 +158,6 @@ export async function createOdooEmployee(data: {
     if (data.mobile) vals.mobile_phone = data.mobile;
     if (data.jobTitle) vals.job_title = data.jobTitle;
     if (data.birthDate) vals.birthday = data.birthDate;
-    if (data.gender) vals.gender = data.gender;
 
     const id = await callKw<number>("hr.employee", "create", [vals]);
     logger.info({ odooId: id }, "Employee created in Odoo");
