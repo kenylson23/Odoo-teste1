@@ -1,7 +1,7 @@
 import { employeeSchema, type EmployeeFormValues } from "@/lib/schemas";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useCreateEmployee, useListDepartments, useListJobs } from "@workspace/api-client-react";
+import { useCreateEmployee, useListDepartments, useListJobs, useGetOdooStatus } from "@workspace/api-client-react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -12,7 +12,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Loader2, Camera, Check, ChevronLeft, ChevronRight, UserPlus } from "lucide-react";
+import { Loader2, Check, ChevronLeft, ChevronRight, UserPlus, ShieldCheck, AlertCircle } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -81,6 +81,7 @@ export function EmployeeForm() {
   const { data: departments = [] } = useListDepartments();
   const { data: jobs = [] } = useListJobs();
   const createEmployee = useCreateEmployee();
+  const { data: odooStatus } = useGetOdooStatus();
 
   const form = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeSchema),
@@ -129,9 +130,23 @@ export function EmployeeForm() {
 
       {/* Card */}
       <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl px-8 pt-8 pb-10">
-        <h1 className="text-center text-2xl font-bold text-gray-800 mb-6">
-          Registo de Funcionário
-        </h1>
+        <div className="flex items-start justify-between mb-6">
+          <h1 className="text-2xl font-bold text-gray-800">Registo de Funcionário</h1>
+          {odooStatus ? (
+            <div className={cn(
+              "flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border",
+              odooStatus.connected
+                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                : "bg-red-50 text-red-600 border-red-200"
+            )}>
+              {odooStatus.connected
+                ? <><ShieldCheck className="w-3.5 h-3.5" /> Odoo Conectado</>
+                : <><AlertCircle className="w-3.5 h-3.5" /> Odoo Desconectado</>}
+            </div>
+          ) : (
+            <div className="w-32 h-6 rounded-full bg-gray-100 animate-pulse" />
+          )}
+        </div>
 
         <StepIndicator current={step} />
 
@@ -143,16 +158,42 @@ export function EmployeeForm() {
               <div>
                 <p className="text-base font-bold text-gray-800 mb-5">Dados Pessoais</p>
 
-                <div className="flex gap-6">
-                  <div className="flex-1 space-y-4">
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className={labelClass}>Nome completo <span className="text-orange-500">*</span></FormLabel>
+                        <FormControl>
+                          <Input placeholder="Ex: João da Silva" className={fieldClass} {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className={labelClass}>E-mail <span className="text-orange-500">*</span></FormLabel>
+                        <FormControl>
+                          <Input type="email" placeholder="joao@empresa.com" className={fieldClass} {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
-                      name="name"
+                      name="cpf"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className={labelClass}>Nome completo <span className="text-orange-500">*</span></FormLabel>
+                          <FormLabel className={labelClass}>BI (Bilhete de Identidade)</FormLabel>
                           <FormControl>
-                            <Input placeholder="Ex: João da Silva" className={fieldClass} {...field} />
+                            <Input placeholder="000000000LA000" className={fieldClass} {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -160,84 +201,45 @@ export function EmployeeForm() {
                     />
                     <FormField
                       control={form.control}
-                      name="email"
+                      name="birthDate"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className={labelClass}>E-mail <span className="text-orange-500">*</span></FormLabel>
+                          <FormLabel className={labelClass}>Data de Nascimento</FormLabel>
                           <FormControl>
-                            <Input type="email" placeholder="joao@empresa.com" className={fieldClass} {...field} />
+                            <Input type="date" className={fieldClass} {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="cpf"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className={labelClass}>BI (Bilhete de Identidade)</FormLabel>
-                            <FormControl>
-                              <Input placeholder="000000000LA000" className={fieldClass} {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="birthDate"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className={labelClass}>Data de Nascimento</FormLabel>
-                            <FormControl>
-                              <Input type="date" className={fieldClass} {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="phone"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className={labelClass}>Telefone</FormLabel>
-                            <FormControl>
-                              <Input placeholder="+244 222 000 000" className={fieldClass} {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="mobile"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className={labelClass}>Telemóvel</FormLabel>
-                            <FormControl>
-                              <Input placeholder="+244 9XX 000 000" className={fieldClass} {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
                   </div>
-
-                  {/* Photo upload */}
-                  <div className="flex flex-col items-center gap-2 pt-6 shrink-0">
-                    <button
-                      type="button"
-                      className="w-20 h-20 rounded-full bg-orange-500 hover:bg-orange-600 transition-colors flex items-center justify-center text-white shadow-lg shadow-orange-200"
-                    >
-                      <Camera className="w-8 h-8" />
-                    </button>
-                    <span className="text-xs text-gray-400 font-medium">Adicionar Foto</span>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className={labelClass}>Telefone</FormLabel>
+                          <FormControl>
+                            <Input placeholder="+244 222 000 000" className={fieldClass} {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="mobile"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className={labelClass}>Telemóvel</FormLabel>
+                          <FormControl>
+                            <Input placeholder="+244 9XX 000 000" className={fieldClass} {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
                 </div>
 
