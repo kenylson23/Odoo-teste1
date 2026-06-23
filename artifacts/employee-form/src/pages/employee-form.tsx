@@ -469,6 +469,11 @@ export function EmployeeForm() {
           </form>
         </Form>
       </div>
+
+      {/* Copyright */}
+      <p className="mt-5 text-xs text-white/70 font-medium tracking-wide text-center">
+        © {new Date().getFullYear()} Kenylson Lourenço — Todos os direitos reservados
+      </p>
     </div>
   );
 }
