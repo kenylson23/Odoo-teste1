@@ -30,13 +30,13 @@ const STEP_FIELDS: Record<number, (keyof EmployeeFormValues)[]> = {
 
 function StepIndicator({ current }: { current: number }) {
   return (
-    <div className="flex items-start justify-center gap-0 mb-8">
+    <div className="flex items-start justify-center mb-6 sm:mb-8">
       {STEPS.map((s, i) => (
         <div key={s.id} className="flex items-start">
           <div className="flex flex-col items-center">
             <div
               className={cn(
-                "w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300",
+                "w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold transition-all duration-300",
                 current > s.id
                   ? "bg-orange-500 text-white"
                   : current === s.id
@@ -44,11 +44,11 @@ function StepIndicator({ current }: { current: number }) {
                   : "bg-gray-100 text-gray-400 border-2 border-gray-200"
               )}
             >
-              {current > s.id ? <Check className="w-4 h-4" /> : s.id}
+              {current > s.id ? <Check className="w-3.5 h-3.5" /> : s.id}
             </div>
             <span
               className={cn(
-                "text-[11px] mt-1.5 font-medium text-center max-w-[70px] leading-tight",
+                "text-[10px] sm:text-[11px] mt-1.5 font-medium text-center max-w-[60px] sm:max-w-[70px] leading-tight",
                 current >= s.id ? "text-orange-500" : "text-gray-400"
               )}
             >
@@ -58,7 +58,7 @@ function StepIndicator({ current }: { current: number }) {
           {i < STEPS.length - 1 && (
             <div
               className={cn(
-                "h-0.5 w-16 mt-[18px] mx-1 transition-colors duration-300",
+                "h-0.5 w-8 sm:w-16 mt-4 mx-1 transition-colors duration-300",
                 current > s.id ? "bg-orange-500" : "bg-gray-200"
               )}
             />
@@ -119,32 +119,36 @@ export function EmployeeForm() {
 
   return (
     <div
-      className="min-h-screen w-full relative overflow-hidden flex flex-col items-center justify-center py-10 px-4"
+      className="min-h-screen w-full relative overflow-hidden flex flex-col items-center justify-center py-6 sm:py-10 px-3 sm:px-4"
       style={{ background: "linear-gradient(135deg, #FDDBC7 0%, #FDBA74 55%, #F97316 100%)" }}
     >
-      {/* Decorative blobs */}
-      <div className="absolute top-0 right-0 w-72 h-72 rounded-full bg-orange-300/30 -translate-y-1/3 translate-x-1/4 pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-56 h-56 rounded-full bg-orange-400/30 translate-y-1/3 -translate-x-1/4 pointer-events-none" />
-      <div className="absolute bottom-1/3 right-0 w-36 h-36 rounded-full bg-orange-200/30 translate-x-1/2 pointer-events-none" />
-      <div className="absolute top-1/3 left-0 w-28 h-28 rounded-full bg-orange-200/40 -translate-x-1/2 pointer-events-none" />
+      {/* Decorative blobs — hidden on very small screens to avoid clutter */}
+      <div className="hidden sm:block absolute top-0 right-0 w-72 h-72 rounded-full bg-orange-300/30 -translate-y-1/3 translate-x-1/4 pointer-events-none" />
+      <div className="hidden sm:block absolute bottom-0 left-0 w-56 h-56 rounded-full bg-orange-400/30 translate-y-1/3 -translate-x-1/4 pointer-events-none" />
+      <div className="hidden md:block absolute bottom-1/3 right-0 w-36 h-36 rounded-full bg-orange-200/30 translate-x-1/2 pointer-events-none" />
+      <div className="hidden md:block absolute top-1/3 left-0 w-28 h-28 rounded-full bg-orange-200/40 -translate-x-1/2 pointer-events-none" />
 
       {/* Card */}
-      <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl px-8 pt-8 pb-10">
-        <div className="flex items-start justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Registo de Funcionário</h1>
+      <div className="relative w-full max-w-2xl bg-white rounded-2xl sm:rounded-3xl shadow-2xl px-4 pt-5 pb-6 sm:px-8 sm:pt-8 sm:pb-10">
+
+        {/* Header: title + Odoo badge */}
+        <div className="flex items-start justify-between gap-3 mb-5 sm:mb-6">
+          <h1 className="text-lg sm:text-2xl font-bold text-gray-800 leading-tight">
+            Registo de Funcionário
+          </h1>
           {odooStatus ? (
             <div className={cn(
-              "flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border",
+              "flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-medium px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border shrink-0",
               odooStatus.connected
                 ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                 : "bg-red-50 text-red-600 border-red-200"
             )}>
               {odooStatus.connected
-                ? <><ShieldCheck className="w-3.5 h-3.5" /> Odoo Conectado</>
-                : <><AlertCircle className="w-3.5 h-3.5" /> Odoo Desconectado</>}
+                ? <><ShieldCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5" /><span className="hidden xs:inline sm:inline">Odoo Conectado</span></>
+                : <><AlertCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5" /><span className="hidden xs:inline sm:inline">Odoo Desconectado</span></>}
             </div>
           ) : (
-            <div className="w-32 h-6 rounded-full bg-gray-100 animate-pulse" />
+            <div className="w-24 sm:w-32 h-6 rounded-full bg-gray-100 animate-pulse shrink-0" />
           )}
         </div>
 
@@ -156,7 +160,7 @@ export function EmployeeForm() {
             {/* ── Step 1: Dados Pessoais ── */}
             {step === 1 && (
               <div>
-                <p className="text-base font-bold text-gray-800 mb-5">Dados Pessoais</p>
+                <p className="text-sm sm:text-base font-bold text-gray-800 mb-4 sm:mb-5">Dados Pessoais</p>
 
                 <div className="space-y-4">
                   <FormField
@@ -185,7 +189,7 @@ export function EmployeeForm() {
                       </FormItem>
                     )}
                   />
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
                       name="cpf"
@@ -213,7 +217,7 @@ export function EmployeeForm() {
                       )}
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
                       name="phone"
@@ -241,10 +245,6 @@ export function EmployeeForm() {
                       )}
                     />
                   </div>
-                </div>
-
-                {/* Gender */}
-                <div className="mt-4">
                   <FormField
                     control={form.control}
                     name="gender"
@@ -255,7 +255,7 @@ export function EmployeeForm() {
                           <RadioGroup
                             onValueChange={field.onChange}
                             defaultValue={field.value}
-                            className="flex gap-6 mt-1"
+                            className="flex flex-wrap gap-4 mt-1"
                           >
                             {[
                               { value: "male", label: "Masculino" },
@@ -285,7 +285,7 @@ export function EmployeeForm() {
             {/* ── Step 2: Dados Profissionais ── */}
             {step === 2 && (
               <div className="space-y-4">
-                <p className="text-base font-bold text-gray-800 mb-5">Dados Profissionais</p>
+                <p className="text-sm sm:text-base font-bold text-gray-800 mb-4 sm:mb-5">Dados Profissionais</p>
                 <FormField
                   control={form.control}
                   name="jobTitle"
@@ -299,7 +299,7 @@ export function EmployeeForm() {
                     </FormItem>
                   )}
                 />
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="jobPosition"
@@ -370,7 +370,7 @@ export function EmployeeForm() {
             {/* ── Step 3: Localização ── */}
             {step === 3 && (
               <div className="space-y-4">
-                <p className="text-base font-bold text-gray-800 mb-5">Localização</p>
+                <p className="text-sm sm:text-base font-bold text-gray-800 mb-4 sm:mb-5">Localização</p>
                 <FormField
                   control={form.control}
                   name="address"
@@ -384,7 +384,7 @@ export function EmployeeForm() {
                     </FormItem>
                   )}
                 />
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="city"
@@ -419,7 +419,7 @@ export function EmployeeForm() {
                     <FormItem>
                       <FormLabel className={labelClass}>Código Postal</FormLabel>
                       <FormControl>
-                        <Input placeholder="0000" className={cn(fieldClass, "max-w-[160px]")} {...field} />
+                        <Input placeholder="0000" className={fieldClass} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -429,12 +429,12 @@ export function EmployeeForm() {
             )}
 
             {/* ── Navigation ── */}
-            <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-100">
+            <div className="flex items-center justify-between mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-gray-100">
               {step > 1 ? (
                 <button
                   type="button"
                   onClick={prevStep}
-                  className="flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                  className="flex items-center gap-1 sm:gap-1.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
                 >
                   <ChevronLeft className="w-4 h-4" />
                   Anterior
@@ -447,7 +447,7 @@ export function EmployeeForm() {
                 <button
                   type="button"
                   onClick={nextStep}
-                  className="flex items-center gap-1.5 px-8 py-2.5 rounded-full text-sm font-semibold bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white shadow-lg shadow-orange-200 transition-all"
+                  className="flex items-center gap-1 sm:gap-1.5 px-5 sm:px-8 py-2 sm:py-2.5 rounded-full text-sm font-semibold bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white shadow-lg shadow-orange-200 transition-all"
                 >
                   Seguinte
                   <ChevronRight className="w-4 h-4" />
@@ -456,12 +456,12 @@ export function EmployeeForm() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex items-center gap-2 px-8 py-2.5 rounded-full text-sm font-semibold bg-orange-500 hover:bg-orange-600 active:bg-orange-700 disabled:opacity-60 text-white shadow-lg shadow-orange-200 transition-all"
+                  className="flex items-center gap-1.5 sm:gap-2 px-4 sm:px-8 py-2 sm:py-2.5 rounded-full text-sm font-semibold bg-orange-500 hover:bg-orange-600 active:bg-orange-700 disabled:opacity-60 text-white shadow-lg shadow-orange-200 transition-all"
                 >
                   {isSubmitting ? (
-                    <><Loader2 className="w-4 h-4 animate-spin" /> A registar...</>
+                    <><Loader2 className="w-4 h-4 animate-spin" /><span className="hidden sm:inline">A registar...</span></>
                   ) : (
-                    <><UserPlus className="w-4 h-4" /> Registar Funcionário</>
+                    <><UserPlus className="w-4 h-4" /><span>Registar</span><span className="hidden sm:inline"> Funcionário</span></>
                   )}
                 </button>
               )}
